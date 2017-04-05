@@ -36,7 +36,7 @@ public class RSSFeed implements Runnable{
     private LinkedList<SyndEntry> entries;
     private SyndFeed feed;
     private String key;
-    
+
     public RSSFeed(String url, RSSPlugin plugin, String aKey){
         feedURL = null;
         try {
@@ -46,26 +46,26 @@ public class RSSFeed implements Runnable{
         }
         final FeedFetcherCache feedInfoCache = PersistentFeedFetcherCache.getInstance();
         fetcher = new HttpURLFeedFetcher(feedInfoCache);
-        
+
         entries = new LinkedList<>();
-        
+
         try {
             feed = fetcher.retrieveFeed(feedURL);
         } catch (IllegalArgumentException | IOException | FeedException | FetcherException ex) {
             Logger.getLogger(RSSFeed.class.getName()).log(Level.SEVERE, null, ex);
         }
         entries.addAll(feed.getEntries());
-        
+
         final FetcherEventListenerImpl listener = new FetcherEventListenerImpl(plugin);
         fetcher.addFetcherEventListener(listener);
         key = aKey;
         new Thread(this).start();
     }
-    
+
     public LinkedList<SyndEntry> getEntries(){
         return entries;
     }
-    
+
     @Override
     public void run() {
         while(true){
@@ -77,7 +77,7 @@ public class RSSFeed implements Runnable{
             }
         }
     }
-    
+
     public static SlackAttachment formatEntry(SyndEntry entry){
         SlackAttachment slacka = new SlackAttachment();
         String text = "";
@@ -90,7 +90,7 @@ public class RSSFeed implements Runnable{
         }
         if(entry.getDescription() != null){
             text += entry.getDescription().getValue() + "\n";
-            slacka.setFallback(slacka.fallback + " - " + entry.getDescription().getValue());
+            slacka.setFallback(slacka.getFallback() + " - " + entry.getDescription().getValue());
         }
         if(entry.getLink() != null){
             slacka.setTitleLink(entry.getLink());
@@ -112,11 +112,11 @@ public class RSSFeed implements Runnable{
 
     private class FetcherEventListenerImpl implements FetcherListener {
         private RSSPlugin plugin;
-        
+
         public FetcherEventListenerImpl(RSSPlugin p){
             plugin = p;
         }
-        
+
         private void feedUpdated(){
             for(SyndEntry entry : feed.getEntries()){
                 if(!entries.contains(entry)){
@@ -127,7 +127,7 @@ public class RSSFeed implements Runnable{
             entries.addAll(feed.getEntries());
             Collections.sort(entries, new EntryComparator());
         }
-        
+
         /**
          * @see com.rometools.rome.fetcher.FetcherListener#fetcherEvent(com.rometools.rome.fetcher.FetcherEvent)
          */
@@ -146,7 +146,7 @@ public class RSSFeed implements Runnable{
             }
         }
     }
-    
+
     private class EntryComparator implements Comparator<SyndEntry>{
 
         @Override
@@ -158,6 +158,6 @@ public class RSSFeed implements Runnable{
             }
             return 0;
         }
-        
+
     }
 }

@@ -5,6 +5,9 @@
  */
 package russbot.plugins;
 
+
+import com.ullink.slack.simpleslackapi.SlackPreparedMessage;
+import com.ullink.slack.simpleslackapi.SlackAttachment;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import russbot.Session;
@@ -74,8 +77,11 @@ public class CSWeekly implements Plugin {
         } else if(message.toLowerCase().startsWith("!news")) {
 
             JSONArray json = allNewsRequest(WEBSITE_URL);
-            String msg = BuildMessage(json);
-            Session.getInstance().sendMessage(msg, channel);
+
+            SlackAttachment[] attachments = BuildMessage(json);
+            SlackPreparedMessage msg = BuildSlackMessage(attachments);
+
+            Session.getInstance().sendPreparedMessage(channel, msg);
         }
     }
 
@@ -83,15 +89,20 @@ public class CSWeekly implements Plugin {
         days[day -1] += article;
     }
 
-    
 
-    public String BuildMessage(JSONArray articles) {
-        String message = "", other = "";
+    public SlackPreparedMessage BuildSlackMessage(SlackAttachment[] attachments) {
+        return null;
+        //todo
+        //return new SlackPreparedMessage("CS Weekly Newsletter", false, true, attachments);
+    }
+
+    public SlackAttachment[] BuildMessage(JSONArray articles) {
+        SlackAttachment[] attachments = new SlackAttachment[articles.length()];
 
         for(int x = 0; x < articles.length(); x ++) {
 
             JSONObject article = articles.getJSONObject(x);
-            String date = "", location = "", link = "", title = article.getString("title");
+            String date = "", location = "", link = "", title = article.getString("title"), text = article.getString("text");
 
             if(!article.isNull("location")) {
                 location = article.getString("location");
@@ -101,10 +112,9 @@ public class CSWeekly implements Plugin {
                 link = article.getString("link");
             }
             if(article.isNull("date")) {
-                if(other == "") {
-                    other += "*Other Announcements*\n";
-                }
-                other += ">\u2022 " + title + "\n";
+
+                //todo other announcments
+
             } else {
 
                 date = article.getString(("date"));
@@ -114,16 +124,23 @@ public class CSWeekly implements Plugin {
                 if(link != "") {
                     web = " - <" + link + "| read more>";
                 }
-                String entry = ">\u2022 " + title+  " @ "  + time + " - " + location + web + "\n";
-                AddArticle(cal.get(Calendar.DAY_OF_WEEK), entry);
+
+                //Builder attachment = new Builder();
+                /*title + " @ " + time + " - " + location, "", text, ""
+                attachment.addField("title_link", link, false);
+                attachment.addField("color", "#512888", false);
+                attachments[x] = attachment;
+                //AddArticle(cal.get(Calendar.DAY_OF_WEEK), entry);*/
             }
+
         }
-        for(int x = 0; x < days.length; x ++) {
+        /*for(int x = 0; x < days.length; x ++) {
             message += days[x];
         }
         message += other;
         message += "\n" + "To learn more about these events check out the online newsletter here! " + WEBSITE_URL;
-        return message;
+        return message;*/
+        return attachments;
 }
 
     public Calendar CreateCalendar(String date) {

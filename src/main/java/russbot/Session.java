@@ -5,6 +5,7 @@
  */
 package russbot;
 
+import com.ullink.slack.simpleslackapi.SlackPreparedMessage;
 import com.ullink.slack.simpleslackapi.SlackAttachment;
 import com.ullink.slack.simpleslackapi.SlackMessageHandle;
 import com.ullink.slack.simpleslackapi.SlackSession;
@@ -78,6 +79,10 @@ public final class Session {
 
     public void sendMessage(String message, String channel, SlackAttachment attachment){
         session.slacksession.sendMessage(session.slacksession.findChannelByName(channel), message, attachment);
+    }
+
+    public void sendPreparedMessage(String channel, SlackPreparedMessage message) {
+        session.slacksession.sendMessage(session.slacksession.findChannelByName(channel), message);
     }
 
     private class PluginContainer{
