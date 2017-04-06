@@ -17,6 +17,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Calendar;
 import java.util.Comparator;
+import java.util.HashMap;
 
 /**
  *
@@ -25,7 +26,6 @@ import java.util.Comparator;
 public class CSWeekly implements Plugin {
 
     private final String WEBSITE_URL = "https://testing.atodd.io/newsletter-generator/public/";
-
     public enum Days {
         SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY
     }
@@ -71,7 +71,6 @@ public class CSWeekly implements Plugin {
         } else if(message.toLowerCase().startsWith("!news")) {
 
             JSONArray json = allNewsRequest(WEBSITE_URL);
-
             SlackAttachment[] attachments = BuildMessage(json);
             SlackPreparedMessage msg = BuildSlackMessage(attachments);
 
@@ -79,20 +78,14 @@ public class CSWeekly implements Plugin {
         }
     }
 
-    /*public void AddArticle(int day, String article) {
-        days[day -1] += article;
-    }*/
-
-
     public SlackPreparedMessage BuildSlackMessage(SlackAttachment[] attachments) {
 
         Builder builder = new Builder();
+        builder.withMessage("*CS Weekly Newsletter*");
         for (SlackAttachment attachment : attachments) {
             builder.addAttachment(attachment);
         }
         return builder.build();
-        //todo
-        //return new SlackPreparedMessage("CS Weekly Newsletter", false, true, attachments);
     }
 
     public SlackAttachment[] BuildMessage(JSONArray articles) {
@@ -102,51 +95,37 @@ public class CSWeekly implements Plugin {
         for(int x = 0; x < articles.length(); x ++) {
 
             JSONObject article = articles.getJSONObject(x);
+            String category = article.getJSONArray("categories").getJSONObject(0).getString("category");
+            Article art = new Article(article.getString("title"), article.getString("text"), category);
+
             String date = "", location = "", link = "", title = article.getString("title"), text = article.getString("text");
 
             if(!article.isNull("location")) {
-                location = article.getString("location");
+                art.setLocation(article.getString("location"));
             }
             if(!article.isNull("link")) {
-
-                link = article.getString("link");
+                art.setLink(article.getString("link"));
             }
-            if(article.isNull("date")) {
-                //todo other announcments
-            } else {
-
-                date = article.getString(("date"));
-                Calendar cal = CreateCalendar(date);
-                String time = ParseTime(cal);
-                String web = "";
-                if(link != "") {
-                    web = " - <" + link + "| read more>";
-                }
-                SlackAttachment attachment = new SlackAttachment(title + " - " + time + " - " + location, "", text, "");
-
-                attachment.addMiscField("title_link", link);
-                attachment.addMiscField("color", "#512888");
-                attachments[x] = attachment;
-                //AddArticle(cal.get(Calendar.DAY_OF_WEEK), entry);
+            if(!article.isNull("date")) {
+                Date d = CreateDate(article.getString(("date")));
+                art.setDate(d);
             }
+
+            SlackAttachment attachment = art.createAttachment();
+            attachment.addMiscField("title_link", link);
+            attachment.addMiscField("color", "#512888");
+            attachments[x] = attachment;
         }
-        /*for(int x = 0; x < days.length; x ++) {
-            message += days[x];
-        }
-        message += other;
-        message += "\n" + "To learn more about these events check out the online newsletter here! " + WEBSITE_URL;
-        return message;*/
+
         return attachments;
-}
+    }
 
-    public Calendar CreateCalendar(String date) {
+    public Date CreateDate(String date) {
         try
         {
             SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             Date d = format.parse(date);
-            Calendar cal = Calendar.getInstance();
-            cal.setTime(d);
-            return cal;
+            return d;
         }
         catch (Exception ex)
         {
@@ -155,11 +134,6 @@ public class CSWeekly implements Plugin {
         }
     }
 
-    public String ParseTime(Calendar cal) {
-
-        SimpleDateFormat format = new SimpleDateFormat("EEEE, M/dd @ H:mm a");
-        return format.format(cal.getTime());
-    }
 
     public JSONArray allNewsRequest(String url) {
         try {
@@ -176,53 +150,93 @@ public class CSWeekly implements Plugin {
     }
 
 
+    private static class Article implements Comparable<Article> {
+
+        public enum Category {
+            GENERAL, CLUB, OTHER, JOB
+        }
+        private String title;
+        private Date date = null;
+        private String location = null;
+        private String link = null;
+        private String text;
+        private Category category;
+
+        public Article(String title, String text, String category) {
+            this.title = title;
+            this.text = text;
+            this.category = parseCategory(category);
+        }
+
+        public Category parseCategory(String category) {
+            HashMap<String, Category> map = new HashMap<String, Category>(){{
+            put("General Announcements", Category.GENERAL);
+            put("Club Announcements", Category.CLUB);
+            put("Other Announcements", Category.OTHER);
+            put("Job Opportunities", Category.JOB);
+            }};
+
+            return map.get(category);
+        }
+
+        public void setDate(Date date) {
+            this.date = date;
+        }
+
+        public void setLocation(String location) {
+            this.location = location;
+        }
+
+        public void setLink(String link) {
+            this.link = link;
+        }
+
+        @Override
+        public int compareTo(Article a)
+        {
+            return this.date.compareTo(a.Date());
+        }
+
+        //todo override toString method
+
+        public SlackAttachment createAttachment() {
+            String time = null;
+            if(date != null) {
+                time = ParseTime(CreateCalendar(date));
+            }
+            String contents = title + (time != null ? " - "+time : "") + (location != null ? " - "+location : "");
+
+            SlackAttachment attachment = new SlackAttachment(contents, "", text, "");
+            attachment.addMiscField("title_link", link);
+            attachment.addMiscField("color", "#512888");
+            return attachment;
+        }
+
+        public Date Date() {
+            return date;
+        }
+
+        public Calendar CreateCalendar(Date date) {
+            try
+            {
+                Calendar cal = Calendar.getInstance();
+                cal.setTime(date);
+                return cal;
+            }
+            catch (Exception ex)
+            {
+                System.out.println("Exception "+ex.toString());
+                return null;
+            }
+        }
+
+        public String ParseTime(Calendar cal) {
+
+            SimpleDateFormat format = new SimpleDateFormat("EEEE, M/dd @ h:mm a");
+            return format.format(cal.getTime());
+        }
 
 
-static class Article implements Comparable<Article> {
-
-    public enum Category {
-        GENERAL, CLUB, OTHER, JOB
     }
-    private String title;
-    private Date date = null;
-    private String location = null;
-    private String link = null;
-    private String text;
-    private Category category;
-
-    public Article(String title, String text, Category category) {
-        this.title = title;
-        this.text = text;
-        this.category = category;
-    }
-
-    public void setDate(Date date) {
-        this.date = date;
-    }
-
-    public void setLocation(String location) {
-        this.location = location;
-    }
-
-    public void setLink(String link) {
-        this.link = link;
-    }
-
-
-
-    @Override
-    public int compareTo(Article a)
-    {
-        return this.date.compareTo(a.Date());
-    }
-
-
-    public Date Date() {
-        return date;
-    }
-
-
-
-}
 
 }
