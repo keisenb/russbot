@@ -112,8 +112,6 @@ public class CSWeekly implements Plugin {
             }
 
             SlackAttachment attachment = art.createAttachment();
-            attachment.addMiscField("title_link", link);
-            attachment.addMiscField("color", "#512888");
             attachments[x] = attachment;
         }
 
@@ -207,8 +205,8 @@ public class CSWeekly implements Plugin {
             String contents = title + (time != null ? " - "+time : "") + (location != null ? " - "+location : "");
 
             SlackAttachment attachment = new SlackAttachment(contents, "", text, "");
-            attachment.addMiscField("title_link", link);
             attachment.addMiscField("color", "#512888");
+            attachment.setTitleLink(link);
             return attachment;
         }
 
