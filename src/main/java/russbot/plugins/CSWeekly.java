@@ -5,8 +5,8 @@
  */
 package russbot.plugins;
 
-
 import com.ullink.slack.simpleslackapi.SlackPreparedMessage;
+import com.ullink.slack.simpleslackapi.SlackPreparedMessage.Builder;
 import com.ullink.slack.simpleslackapi.SlackAttachment;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
@@ -16,7 +16,7 @@ import org.json.JSONArray;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Calendar;
-
+import java.util.Comparator;
 
 /**
  *
@@ -26,15 +26,9 @@ public class CSWeekly implements Plugin {
 
     private final String WEBSITE_URL = "https://testing.atodd.io/newsletter-generator/public/";
 
-    String[] days = {
-        "*Sunday*\n",
-        "*Monday*\n",
-        "*Tuesday*\n",
-        "*Wednesday*\n",
-        "*Thursday*\n",
-        "*Friday*\n",
-        "*Saturday*\n"
-    };
+    public enum Days {
+        SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY
+    }
 
     @Override
     public String getRegexPattern() {
@@ -85,18 +79,24 @@ public class CSWeekly implements Plugin {
         }
     }
 
-    public void AddArticle(int day, String article) {
+    /*public void AddArticle(int day, String article) {
         days[day -1] += article;
-    }
+    }*/
 
 
     public SlackPreparedMessage BuildSlackMessage(SlackAttachment[] attachments) {
-        return null;
+
+        Builder builder = new Builder();
+        for (SlackAttachment attachment : attachments) {
+            builder.addAttachment(attachment);
+        }
+        return builder.build();
         //todo
         //return new SlackPreparedMessage("CS Weekly Newsletter", false, true, attachments);
     }
 
     public SlackAttachment[] BuildMessage(JSONArray articles) {
+
         SlackAttachment[] attachments = new SlackAttachment[articles.length()];
 
         for(int x = 0; x < articles.length(); x ++) {
@@ -112,9 +112,7 @@ public class CSWeekly implements Plugin {
                 link = article.getString("link");
             }
             if(article.isNull("date")) {
-
                 //todo other announcments
-
             } else {
 
                 date = article.getString(("date"));
@@ -124,15 +122,13 @@ public class CSWeekly implements Plugin {
                 if(link != "") {
                     web = " - <" + link + "| read more>";
                 }
+                SlackAttachment attachment = new SlackAttachment(title + " - " + time + " - " + location, "", text, "");
 
-                //Builder attachment = new Builder();
-                /*title + " @ " + time + " - " + location, "", text, ""
-                attachment.addField("title_link", link, false);
-                attachment.addField("color", "#512888", false);
+                attachment.addMiscField("title_link", link);
+                attachment.addMiscField("color", "#512888");
                 attachments[x] = attachment;
-                //AddArticle(cal.get(Calendar.DAY_OF_WEEK), entry);*/
+                //AddArticle(cal.get(Calendar.DAY_OF_WEEK), entry);
             }
-
         }
         /*for(int x = 0; x < days.length; x ++) {
             message += days[x];
@@ -146,8 +142,8 @@ public class CSWeekly implements Plugin {
     public Calendar CreateCalendar(String date) {
         try
         {
-            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            Date d = simpleDateFormat.parse(date);
+            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date d = format.parse(date);
             Calendar cal = Calendar.getInstance();
             cal.setTime(d);
             return cal;
@@ -160,9 +156,9 @@ public class CSWeekly implements Plugin {
     }
 
     public String ParseTime(Calendar cal) {
-        int hour = cal.get(Calendar.HOUR_OF_DAY);
-        int min =  cal.get(Calendar.MINUTE);
-        return hour%12 + ":" + min + ((min==0) ? "0" : "") + " " + ((hour>=12) ? "PM" : "AM");
+
+        SimpleDateFormat format = new SimpleDateFormat("EEEE, M/dd @ H:mm a");
+        return format.format(cal.getTime());
     }
 
     public JSONArray allNewsRequest(String url) {
@@ -178,4 +174,55 @@ public class CSWeekly implements Plugin {
             return null;
         }
     }
+
+
+
+
+static class Article implements Comparable<Article> {
+
+    public enum Category {
+        GENERAL, CLUB, OTHER, JOB
+    }
+    private String title;
+    private Date date = null;
+    private String location = null;
+    private String link = null;
+    private String text;
+    private Category category;
+
+    public Article(String title, String text, Category category) {
+        this.title = title;
+        this.text = text;
+        this.category = category;
+    }
+
+    public void setDate(Date date) {
+        this.date = date;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public void setLink(String link) {
+        this.link = link;
+    }
+
+
+
+    @Override
+    public int compareTo(Article a)
+    {
+        return this.date.compareTo(a.Date());
+    }
+
+
+    public Date Date() {
+        return date;
+    }
+
+
+
+}
+
 }
