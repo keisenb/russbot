@@ -17,13 +17,22 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Calendar;
 import java.util.Comparator;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.HashMap;
+import org.apache.commons.lang3.ArrayUtils;
+
+import java.util.logging.FileHandler;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 /**
  *
  * @author keisenb
  */
 public class CSWeekly implements Plugin {
+
+    List<List<SlackAttachment>> attachments = null;
 
     private final String WEBSITE_URL = "https://testing.atodd.io/newsletter-generator/public/";
     public enum Days {
@@ -64,34 +73,42 @@ public class CSWeekly implements Plugin {
         if (message.toLowerCase().startsWith("!news help")) {
             String msg = "This is the help message";
             Session.getInstance().sendMessage(msg, channel);
+
         } else if (message.toLowerCase().startsWith("!news ")) {
-            String msg = message.substring(6);
+            //String msg = message.substring(6);
+            int msg = Calendar.SATURDAY;
             //todo
-            Session.getInstance().sendMessage(msg, channel);
+            Session.getInstance().sendMessage(msg + "", channel);
+
         } else if(message.toLowerCase().startsWith("!news")) {
 
             JSONArray json = allNewsRequest(WEBSITE_URL);
-            SlackAttachment[] attachments = BuildMessage(json);
+            SlackAttachment[] attachments = BuildMessage(json, channel);
             SlackPreparedMessage msg = BuildSlackMessage(attachments);
 
             Session.getInstance().sendPreparedMessage(channel, msg);
         }
+
     }
 
-    public SlackPreparedMessage BuildSlackMessage(SlackAttachment[] attachments) {
+    public SlackPreparedMessage BuildSlackMessage(SlackAttachment[] attaches) {
 
         Builder builder = new Builder();
         builder.withMessage("*CS Weekly Newsletter*");
-        for (SlackAttachment attachment : attachments) {
+        for (SlackAttachment attachment : attaches) {
             builder.addAttachment(attachment);
         }
         return builder.build();
     }
 
-    public SlackAttachment[] BuildMessage(JSONArray articles) {
 
-        SlackAttachment[] attachments = new SlackAttachment[articles.length()];
 
+    public SlackAttachment[] BuildMessage(JSONArray articles, String channel) {
+        
+        attachments = new ArrayList<List<SlackAttachment>>(8);
+        for(int x = 0; x < 8; x++) {
+            attachments.add(new ArrayList<SlackAttachment>());
+        }
         for(int x = 0; x < articles.length(); x ++) {
 
             JSONObject article = articles.getJSONObject(x);
@@ -112,11 +129,21 @@ public class CSWeekly implements Plugin {
             }
 
             SlackAttachment attachment = art.createAttachment();
-            attachments[x] = attachment;
+            int day = art.GetDay();
+            attachments.get(day -1).add(attachment);
+
         }
 
-        return attachments;
+        List<SlackAttachment> result = new ArrayList<SlackAttachment>();
+        for(List<SlackAttachment> array : attachments) {
+            result.addAll(array);
+        }
+
+        SlackAttachment[] arrayResult = new SlackAttachment[articles.length()];
+        arrayResult = result.toArray(arrayResult);
+        return arrayResult;
     }
+
 
     public Date CreateDate(String date) {
         try
@@ -132,7 +159,6 @@ public class CSWeekly implements Plugin {
         }
     }
 
-
     public JSONArray allNewsRequest(String url) {
         try {
             HttpResponse<String> response = Unirest.get("https://testing.atodd.io/newsletter-generator/public/api/articles").asString();
@@ -147,18 +173,16 @@ public class CSWeekly implements Plugin {
         }
     }
 
-
     private static class Article implements Comparable<Article> {
 
-        public enum Category {
-            GENERAL, CLUB, OTHER, JOB
-        }
+        public enum Category { GENERAL, CLUB, OTHER, JOB }
         private String title;
         private Date date = null;
         private String location = null;
         private String link = null;
         private String text;
         private Category category;
+        private int day = 7;
 
         public Article(String title, String text, String category) {
             this.title = title;
@@ -219,6 +243,7 @@ public class CSWeekly implements Plugin {
             {
                 Calendar cal = Calendar.getInstance();
                 cal.setTime(date);
+                day = cal.get(Calendar.DAY_OF_WEEK);
                 return cal;
             }
             catch (Exception ex)
@@ -228,13 +253,15 @@ public class CSWeekly implements Plugin {
             }
         }
 
+        public int GetDay() {
+            return day;
+        }
+
         public String ParseTime(Calendar cal) {
 
             SimpleDateFormat format = new SimpleDateFormat("EEEE, M/dd @ h:mm a");
             return format.format(cal.getTime());
         }
 
-
     }
-
 }
