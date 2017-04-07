@@ -104,7 +104,7 @@ public class CSWeekly implements Plugin {
 
 
     public SlackAttachment[] BuildMessage(JSONArray articles, String channel) {
-        
+
         attachments = new ArrayList<List<SlackAttachment>>(8);
         for(int x = 0; x < 8; x++) {
             attachments.add(new ArrayList<SlackAttachment>());
@@ -130,7 +130,7 @@ public class CSWeekly implements Plugin {
 
             SlackAttachment attachment = art.createAttachment();
             int day = art.GetDay();
-            attachments.get(day -1).add(attachment);
+            attachments.get(day).add(attachment);
 
         }
 
@@ -243,7 +243,7 @@ public class CSWeekly implements Plugin {
             {
                 Calendar cal = Calendar.getInstance();
                 cal.setTime(date);
-                day = cal.get(Calendar.DAY_OF_WEEK);
+                day = cal.get(Calendar.DAY_OF_WEEK) -1;
                 return cal;
             }
             catch (Exception ex)
