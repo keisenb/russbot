@@ -22,10 +22,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import org.apache.commons.lang3.ArrayUtils;
 
-import java.util.logging.FileHandler;
-import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
-
 /**
  *
  * @author keisenb
@@ -73,22 +69,16 @@ public class CSWeekly implements Plugin {
         if (message.toLowerCase().startsWith("!news help")) {
             String msg = "This is the help message";
             Session.getInstance().sendMessage(msg, channel);
-
         } else if (message.toLowerCase().startsWith("!news ")) {
-            //String msg = message.substring(6);
-            int msg = Calendar.SATURDAY;
+            String msg = message.substring(6);
             //todo
-            Session.getInstance().sendMessage(msg + "", channel);
-
+            Session.getInstance().sendMessage(msg, channel);
         } else if(message.toLowerCase().startsWith("!news")) {
-
             JSONArray json = allNewsRequest(WEBSITE_URL);
             SlackAttachment[] attachments = BuildMessage(json, channel);
             SlackPreparedMessage msg = BuildSlackMessage(attachments);
-
             Session.getInstance().sendPreparedMessage(channel, msg);
         }
-
     }
 
     public SlackPreparedMessage BuildSlackMessage(SlackAttachment[] attaches) {
