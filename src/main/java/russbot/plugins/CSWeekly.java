@@ -30,7 +30,7 @@ public class CSWeekly implements Plugin {
 
     List<List<SlackAttachment>> attachments = null;
 
-    private final String WEBSITE_URL = "https://testing.atodd.io/newsletter-generator/public/";
+    private final String WEBSITE_URL = "https://testing.atodd.io/newsletter-generator/public/api";
     public enum Days {
         SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY
     }
@@ -102,8 +102,7 @@ public class CSWeekly implements Plugin {
         for(int x = 0; x < articles.length(); x ++) {
 
             JSONObject article = articles.getJSONObject(x);
-            String category = article.getJSONArray("categories").getJSONObject(0).getString("category");
-            Article art = new Article(article.getString("title"), article.getString("text"), category);
+            Article art = new Article(article.getString("title"), article.getString("text"));
 
             String date = "", location = "", link = "", title = article.getString("title"), text = article.getString("text");
 
@@ -151,10 +150,11 @@ public class CSWeekly implements Plugin {
 
     public JSONArray allNewsRequest(String url) {
         try {
-            HttpResponse<String> response = Unirest.get("https://testing.atodd.io/newsletter-generator/public/api/articles").asString();
+            HttpResponse<String> response = Unirest.get(url + "/articles").asString();
             String body = response.getBody();
             JSONObject object = new JSONObject(body);
             JSONArray articles = object.getJSONArray("articles");
+
             return articles;
         }
         catch (Exception ex) {
@@ -174,10 +174,9 @@ public class CSWeekly implements Plugin {
         private Category category;
         private int day = 7;
 
-        public Article(String title, String text, String category) {
+        public Article(String title, String text) {
             this.title = title;
             this.text = text;
-            this.category = parseCategory(category);
         }
 
         public Category parseCategory(String category) {
