@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package russbot.plugins;
 
 import com.ullink.slack.simpleslackapi.SlackPreparedMessage;
@@ -31,9 +26,26 @@ public class CSWeekly implements Plugin {
     List<List<SlackAttachment>> attachments = null;
 
     private final String WEBSITE_URL = "https://testing.atodd.io/newsletter-generator/public/api";
-    public enum Days {
-        SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY
-    }
+
+    HashMap<String,Integer> day_map = new HashMap<String,Integer>(){{
+        put( "SUNDAY", 0 );
+        put( "MONDAY", 1 );
+        put( "TUESDAY", 2 );
+        put( "WEDNESDAY", 3 );
+        put( "THURSDAY", 4 );
+        put( "FRIDAY", 5 );
+        put( "SATURDAY", 6 );
+    }};
+
+
+    /*public enum Days {
+        SUNDAY(0), MONDAY(1), TUESDAY(2), WEDNESDAY(3), THURSDAY(4), FRIDAY(5), SATURDAY(6);
+        private int value;
+        Days(int value)
+        {
+            this.value = value;
+        }
+    }*/
 
     @Override
     public String getRegexPattern() {
@@ -70,9 +82,18 @@ public class CSWeekly implements Plugin {
             String msg = "This is the help message";
             Session.getInstance().sendMessage(msg, channel);
         } else if (message.toLowerCase().startsWith("!news ")) {
-            String msg = message.substring(6);
-            //todo
-            Session.getInstance().sendMessage(msg, channel);
+            String msg = message.substring(6).toUpperCase();
+            Integer value = day_map.get(msg);
+            if ( value != null ) {
+                JSONArray json = dayNewsRequest(WEBSITE_URL, value);
+                SlackAttachment[] attachments = BuildMessage(json, channel);
+                SlackPreparedMessage response = BuildSlackMessage(attachments);
+                Session.getInstance().sendPreparedMessage(channel, response);
+            } else {
+                Session.getInstance().sendMessage("Invalid day. Try !news tuesday", channel);
+            }
+
+
         } else if(message.toLowerCase().startsWith("!news")) {
             JSONArray json = allNewsRequest(WEBSITE_URL);
             SlackAttachment[] attachments = BuildMessage(json, channel);
@@ -163,6 +184,21 @@ public class CSWeekly implements Plugin {
         }
     }
 
+    public JSONArray dayNewsRequest(String url, int day) {
+        try {
+            HttpResponse<String> response = Unirest.get(url + "/articles/daily/" + day).asString();
+            String body = response.getBody();
+            JSONObject object = new JSONObject(body);
+            JSONArray articles = object.getJSONArray("articles");
+
+            return articles;
+        }
+        catch (Exception ex) {
+            System.out.println(ex.toString());
+            return null;
+        }
+    }
+
     private static class Article implements Comparable<Article> {
 
         public enum Category { GENERAL, CLUB, OTHER, JOB }
@@ -171,7 +207,6 @@ public class CSWeekly implements Plugin {
         private String location = null;
         private String link = null;
         private String text;
-        private Category category;
         private int day = 7;
 
         public Article(String title, String text) {
@@ -179,16 +214,6 @@ public class CSWeekly implements Plugin {
             this.text = text;
         }
 
-        public Category parseCategory(String category) {
-            HashMap<String, Category> map = new HashMap<String, Category>(){{
-            put("General Announcements", Category.GENERAL);
-            put("Club Announcements", Category.CLUB);
-            put("Other Announcements", Category.OTHER);
-            put("Job Opportunities", Category.JOB);
-            }};
-
-            return map.get(category);
-        }
 
         public void setDate(Date date) {
             this.date = date;
