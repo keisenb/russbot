@@ -37,19 +37,9 @@ public class CSWeekly implements Plugin {
         put( "SATURDAY", 6 );
     }};
 
-
-    /*public enum Days {
-        SUNDAY(0), MONDAY(1), TUESDAY(2), WEDNESDAY(3), THURSDAY(4), FRIDAY(5), SATURDAY(6);
-        private int value;
-        Days(int value)
-        {
-            this.value = value;
-        }
-    }*/
-
     @Override
     public String getRegexPattern() {
-        return "![Nn]ews .*|![Nn]ews|![Nn]ews help";
+        return "![Nn]ews .*|![Nn]ews";
     }
 
     @Override
@@ -69,7 +59,6 @@ public class CSWeekly implements Plugin {
     public String[] getCommands() {
         String[] commands = {
             "!news - Returns a list of Computer Science events for the week.",
-            "!news help - Returns information on how to use the plugin.",
             "!news <day of week> - Returns the news for a specific day of the upcoming week."
         };
         return commands;
@@ -78,14 +67,32 @@ public class CSWeekly implements Plugin {
     @Override
     public void messagePosted(String message, String channel) {
 
-        if (message.toLowerCase().startsWith("!news help")) {
-            String msg = "This is the help message";
-            Session.getInstance().sendMessage(msg, channel);
+        if (message.toLowerCase().startsWith("!news clubs")) {
+
+            JSONArray json = clubsNewsRequest(WEBSITE_URL);
+            SlackAttachment[] attachments = BuildMessage(json, channel);
+            SlackPreparedMessage response = BuildSlackMessage(attachments);
+            Session.getInstance().sendPreparedMessage(channel, response);
+
         } else if (message.toLowerCase().startsWith("!news ")) {
+
+            Calendar cal = Calendar.getInstance();
+            int day = cal.get(Calendar.DAY_OF_WEEK) -1;
             String msg = message.substring(6).toUpperCase();
             Integer value = day_map.get(msg);
+
             if ( value != null ) {
                 JSONArray json = dayNewsRequest(WEBSITE_URL, value);
+                SlackAttachment[] attachments = BuildMessage(json, channel);
+                SlackPreparedMessage response = BuildSlackMessage(attachments);
+                Session.getInstance().sendPreparedMessage(channel, response);
+            } else if(msg.startsWith("TODAY")) {
+                JSONArray json = dayNewsRequest(WEBSITE_URL, day);
+                SlackAttachment[] attachments = BuildMessage(json, channel);
+                SlackPreparedMessage response = BuildSlackMessage(attachments);
+                Session.getInstance().sendPreparedMessage(channel, response);
+            } else if(msg.startsWith("TOMORROW")) {
+                JSONArray json = dayNewsRequest(WEBSITE_URL, day+ 1);
                 SlackAttachment[] attachments = BuildMessage(json, channel);
                 SlackPreparedMessage response = BuildSlackMessage(attachments);
                 Session.getInstance().sendPreparedMessage(channel, response);
@@ -93,8 +100,8 @@ public class CSWeekly implements Plugin {
                 Session.getInstance().sendMessage("Invalid day. Try !news tuesday", channel);
             }
 
-
         } else if(message.toLowerCase().startsWith("!news")) {
+
             JSONArray json = allNewsRequest(WEBSITE_URL);
             SlackAttachment[] attachments = BuildMessage(json, channel);
             SlackPreparedMessage msg = BuildSlackMessage(attachments);
@@ -105,7 +112,10 @@ public class CSWeekly implements Plugin {
     public SlackPreparedMessage BuildSlackMessage(SlackAttachment[] attaches) {
 
         Builder builder = new Builder();
-        builder.withMessage("*CS Weekly Newsletter*");
+        if(attaches.length != 0) {
+            builder.withMessage("*CS Weekly Newsletter*");
+
+        }
         for (SlackAttachment attachment : attaches) {
             builder.addAttachment(attachment);
         }
@@ -187,6 +197,21 @@ public class CSWeekly implements Plugin {
     public JSONArray dayNewsRequest(String url, int day) {
         try {
             HttpResponse<String> response = Unirest.get(url + "/articles/daily/" + day).asString();
+            String body = response.getBody();
+            JSONObject object = new JSONObject(body);
+            JSONArray articles = object.getJSONArray("articles");
+
+            return articles;
+        }
+        catch (Exception ex) {
+            System.out.println(ex.toString());
+            return null;
+        }
+    }
+
+    public JSONArray clubsNewsRequest(String url) {
+        try {
+            HttpResponse<String> response = Unirest.get(url + "/articles/clubs").asString();
             String body = response.getBody();
             JSONObject object = new JSONObject(body);
             JSONArray articles = object.getJSONArray("articles");
