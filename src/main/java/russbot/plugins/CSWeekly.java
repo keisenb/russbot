@@ -67,11 +67,15 @@ public class CSWeekly implements Plugin {
     @Override
     public void messagePosted(String message, String channel) {
 
+        JSONArray json;
+        SlackAttachment[] attachments;
+        SlackPreparedMessage response;
+
         if (message.toLowerCase().startsWith("!news clubs")) {
 
-            JSONArray json = clubsNewsRequest(WEBSITE_URL);
-            SlackAttachment[] attachments = BuildMessage(json, channel);
-            SlackPreparedMessage response = BuildSlackMessage(attachments);
+            json = clubsNewsRequest(WEBSITE_URL);
+            attachments = BuildMessage(json, channel);
+            response = BuildSlackMessage(attachments);
             Session.getInstance().sendPreparedMessage(channel, response);
 
         } else if (message.toLowerCase().startsWith("!news ")) {
@@ -82,19 +86,19 @@ public class CSWeekly implements Plugin {
             Integer value = day_map.get(msg);
 
             if ( value != null ) {
-                JSONArray json = dayNewsRequest(WEBSITE_URL, value);
-                SlackAttachment[] attachments = BuildMessage(json, channel);
-                SlackPreparedMessage response = BuildSlackMessage(attachments);
+                json = dayNewsRequest(WEBSITE_URL, value);
+                attachments = BuildMessage(json, channel);
+                response = BuildSlackMessage(attachments);
                 Session.getInstance().sendPreparedMessage(channel, response);
             } else if(msg.startsWith("TODAY")) {
-                JSONArray json = dayNewsRequest(WEBSITE_URL, day);
-                SlackAttachment[] attachments = BuildMessage(json, channel);
-                SlackPreparedMessage response = BuildSlackMessage(attachments);
+                json = dayNewsRequest(WEBSITE_URL, day);
+                attachments = BuildMessage(json, channel);
+                response = BuildSlackMessage(attachments);
                 Session.getInstance().sendPreparedMessage(channel, response);
             } else if(msg.startsWith("TOMORROW")) {
-                JSONArray json = dayNewsRequest(WEBSITE_URL, day+ 1);
-                SlackAttachment[] attachments = BuildMessage(json, channel);
-                SlackPreparedMessage response = BuildSlackMessage(attachments);
+                json = dayNewsRequest(WEBSITE_URL, day+ 1);
+                attachments = BuildMessage(json, channel);
+                response = BuildSlackMessage(attachments);
                 Session.getInstance().sendPreparedMessage(channel, response);
             } else {
                 Session.getInstance().sendMessage("Invalid day. Try !news tuesday", channel);
@@ -102,10 +106,10 @@ public class CSWeekly implements Plugin {
 
         } else if(message.toLowerCase().startsWith("!news")) {
 
-            JSONArray json = allNewsRequest(WEBSITE_URL);
-            SlackAttachment[] attachments = BuildMessage(json, channel);
-            SlackPreparedMessage msg = BuildSlackMessage(attachments);
-            Session.getInstance().sendPreparedMessage(channel, msg);
+            json = allNewsRequest(WEBSITE_URL);
+            attachments = BuildMessage(json, channel);
+            response = BuildSlackMessage(attachments);
+            Session.getInstance().sendPreparedMessage(channel, response);
         }
     }
 
@@ -114,7 +118,9 @@ public class CSWeekly implements Plugin {
         Builder builder = new Builder();
         if(attaches.length != 0) {
             builder.withMessage("*CS Weekly Newsletter*");
-
+        }
+        else {
+            builder.withMessage("No events!");
         }
         for (SlackAttachment attachment : attaches) {
             builder.addAttachment(attachment);
@@ -134,7 +140,6 @@ public class CSWeekly implements Plugin {
 
             JSONObject article = articles.getJSONObject(x);
             Article art = new Article(article.getString("title"), article.getString("text"));
-
             String date = "", location = "", link = "", title = article.getString("title"), text = article.getString("text");
 
             if(!article.isNull("location")) {
@@ -151,14 +156,11 @@ public class CSWeekly implements Plugin {
             SlackAttachment attachment = art.createAttachment();
             int day = art.GetDay();
             attachments.get(day).add(attachment);
-
         }
-
         List<SlackAttachment> result = new ArrayList<SlackAttachment>();
         for(List<SlackAttachment> array : attachments) {
             result.addAll(array);
         }
-
         SlackAttachment[] arrayResult = new SlackAttachment[articles.length()];
         arrayResult = result.toArray(arrayResult);
         return arrayResult;
@@ -185,7 +187,6 @@ public class CSWeekly implements Plugin {
             String body = response.getBody();
             JSONObject object = new JSONObject(body);
             JSONArray articles = object.getJSONArray("articles");
-
             return articles;
         }
         catch (Exception ex) {
@@ -200,7 +201,6 @@ public class CSWeekly implements Plugin {
             String body = response.getBody();
             JSONObject object = new JSONObject(body);
             JSONArray articles = object.getJSONArray("articles");
-
             return articles;
         }
         catch (Exception ex) {
@@ -215,7 +215,6 @@ public class CSWeekly implements Plugin {
             String body = response.getBody();
             JSONObject object = new JSONObject(body);
             JSONArray articles = object.getJSONArray("articles");
-
             return articles;
         }
         catch (Exception ex) {
@@ -258,8 +257,6 @@ public class CSWeekly implements Plugin {
             return this.date.compareTo(a.Date());
         }
 
-        //todo override toString method
-
         public SlackAttachment createAttachment() {
             String time = null;
             if(date != null) {
@@ -301,6 +298,5 @@ public class CSWeekly implements Plugin {
             SimpleDateFormat format = new SimpleDateFormat("EEEE, M/dd @ h:mm a");
             return format.format(cal.getTime());
         }
-
     }
 }
