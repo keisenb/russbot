@@ -80,9 +80,10 @@ public class CSWeekly implements Plugin {
 
         } else if (message.toLowerCase().startsWith("!news ")) {
 
+            int withoutNews = 6;
             Calendar cal = Calendar.getInstance();
-            int day = cal.get(Calendar.DAY_OF_WEEK) -1;
-            String msg = message.substring(6).toUpperCase();
+            int day = cal.get(Calendar.DAY_OF_WEEK) - 1;
+            String msg = message.substring(withoutNews).toUpperCase();
             Integer value = day_map.get(msg);
 
             if ( value != null ) {
@@ -113,16 +114,16 @@ public class CSWeekly implements Plugin {
         }
     }
 
-    public SlackPreparedMessage BuildSlackMessage(SlackAttachment[] attaches) {
+    public SlackPreparedMessage BuildSlackMessage(SlackAttachment[] attachments) {
 
         Builder builder = new Builder();
-        if(attaches.length != 0) {
+        if(attachments.length != 0) {
             builder.withMessage("*CS Weekly Newsletter*");
         }
         else {
             builder.withMessage("No events!");
         }
-        for (SlackAttachment attachment : attaches) {
+        for (SlackAttachment attachment : attachments) {
             builder.addAttachment(attachment);
         }
         return builder.build();
@@ -132,15 +133,18 @@ public class CSWeekly implements Plugin {
 
     public SlackAttachment[] BuildMessage(JSONArray articles, String channel) {
 
-        attachments = new ArrayList<List<SlackAttachment>>(8);
-        for(int x = 0; x < 8; x++) {
+        int listOfDaysLength = 8;
+        attachments = new ArrayList<List<SlackAttachment>>(listOfDaysLength);
+        for(int x = 0; x < listOfDaysLength; x++) {
             attachments.add(new ArrayList<SlackAttachment>());
         }
         for(int x = 0; x < articles.length(); x ++) {
 
             JSONObject article = articles.getJSONObject(x);
-            Article art = new Article(article.getString("title"), article.getString("text"));
-            String date = "", location = "", link = "", title = article.getString("title"), text = article.getString("text");
+            String title = article.getString("title");
+            String text = article.getString("text");
+            Article art = new Article(title, text);
+            String date = "", location = "", link = "";
 
             if(!article.isNull("location")) {
                 art.setLocation(article.getString("location"));
